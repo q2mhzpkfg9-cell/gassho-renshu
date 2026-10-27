@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>音楽発表会 合唱れんしゅう</title>
+<style>
+  :root { --bg:#f6f3ec; --card:#fff; --ink:#2b2a28; --sub:#7a756c; --accent:#3a8ee0; --line:#e6e0d4; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:"Hiragino Maru Gothic ProN","Hiragino Sans",system-ui,sans-serif; padding:24px 16px 48px; }
+  main { max-width:880px; margin:0 auto; }
+  h1 { font-size:1.5rem; margin:0 0 4px; }
+  .lead { color:var(--sub); margin:0 0 20px; font-size:.9rem; }
+  button { font:inherit; font-size:.95rem; padding:10px 16px; border-radius:10px; border:1px solid var(--line); background:#fff; cursor:pointer; color:inherit; }
+  button.on { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .list { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin-bottom:16px; }
+  .item { text-align:left; padding:14px 16px; }
+  .item small { display:block; color:var(--sub); margin-top:2px; }
+  .item.active { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent) inset; }
+  .item.empty { opacity:.5; }
+  .stage { background:#000; border-radius:12px; overflow:hidden; aspect-ratio:16/9; position:relative; }
+  .stage iframe, #player { position:absolute; inset:0; width:100%; height:100%; border:0; }
+  .msg { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:1rem; }
+  .tools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:12px; }
+  .tools .label { color:var(--sub); font-size:.85rem; margin-right:2px; }
+  .note { color:var(--sub); font-size:.8rem; margin-top:16px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🎵 音楽発表会 合唱れんしゅう</h1>
+  <p class="lead">曲をえらんで、いっしょにうたおう。</p>
+  <div class="list" id="list"></div>
+  <div class="stage"><div id="player"></div><div class="msg" id="msg" hidden>この曲のリンクはまだ入っていません</div></div>
+  <div class="tools">
+    <span class="label">速さ</span>
+    <button data-rate="0.5">0.5倍</button>
+    <button data-rate="0.75">0.75倍</button>
+    <button data-rate="1" class="on">ふつう</button>
+  </div>
+  <p class="note">※ 動画はYouTubeから再生しています。曲を切り替えても速さはそのまま引き継がれます。</p>
+</main>
+<script>
+// url に YouTube のリンクを貼るだけで追加・差し替えできます
+const SONGS = [
+  { title:'1. 崖の上のポニョ',     sub:'クラウン少女合唱団', url:'https://www.youtube.com/watch?v=09oTF6FMcZs' },
+  { title:'2. 君をのせて',         sub:'合唱・歌詞付き',     url:'https://www.youtube.com/watch?v=7e1F07ErigY' },
+  { title:'3. カントリー・ロード', sub:'斉唱・同声二部',     url:'https://www.youtube.com/watch?v=iSYqHjTcol4' },
+  { title:'4. いつでも誰かが',     sub:'合唱',               url:'https://www.youtube.com/watch?v=5uNT-ahZ9QE' },
+  { title:'5. にじ',               sub:'同声二部・歌詞付き', url:'https://www.youtube.com/watch?v=mE9v_O0IhWw' },
+];
+function ytId(u) {
+  const m = (u || '').match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/);
+  return m ? m[1] : '';
+}
+const list = document.getElementById('list'), msg = document.getElementById('msg');
+let rate = 1, cur = -1, player, ready = false, pending = '';
+function render() {
+  list.innerHTML = '';
+  SONGS.forEach((s, i) => {
+    const b = document.createElement('button');
+    const id = ytId(s.url);
+    b.className = 'item' + (cur === i ? ' active' : '') + (id ? '' : ' empty');
+    b.innerHTML = `<b>${s.title}</b><small>${s.sub || (id ? '　' : 'リンク準備中')}</small>`;
+    b.onclick = () => select(i);
+    list.appendChild(b);
+  });
+}
+function select(i) {
+  if (cur === i) return;
+  cur = i; render();
+  const id = ytId(SONGS[i].url);
+  msg.hidden = !!id;
+  document.getElementById('player').style.visibility = id ? 'visible' : 'hidden';
+  if (!id) { if (ready) player.stopVideo(); return; }
+  if (ready) player.cueVideoById(id); else pending = id;
+}
+function onYouTubeIframeAPIReady() {
+  player = new YT.Player('player', {
+    host: 'https://www.youtube-nocookie.com',
+    playerVars: { playsinline:1, rel:0 },
+    events: {
+      onReady: () => { ready = true; if (pending) player.cueVideoById(pending); },
+      onStateChange: e => { if (e.data === YT.PlayerState.PLAYING) player.setPlaybackRate(rate); }
+    }
+  });
+}
+document.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => {
+  rate = +b.dataset.rate; if (ready) player.setPlaybackRate(rate);
+  document.querySelectorAll('[data-rate]').forEach(x => x.classList.toggle('on', x === b));
+});
+select(0);
+</script>
+<script src="https://www.youtube.com/iframe_api"></script>
+</body>
+</html>
